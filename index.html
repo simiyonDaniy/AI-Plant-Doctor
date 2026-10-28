@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#176b45">
+<title>AI Plant Doctor</title>
+<style>
+:root{--green:#176b45;--green2:#e8f6ed;--ink:#183127;--muted:#617168;--line:#dbe8df;--bg:#f5faf6;--white:#fff;--amber:#fff4d7}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(135deg,#145a39,#2d915a);color:white;padding:24px 18px 28px}
+.wrap{max-width:760px;margin:auto}.eyebrow{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;opacity:.9;font-weight:700}
+h1{font-size:clamp(2rem,7vw,3rem);line-height:1.05;margin:8px 0}.subtitle{max-width:550px;line-height:1.5;margin:10px 0 0;color:#effff3}
+main{padding:16px;max-width:760px;margin:auto}.card{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:18px;margin:0 0 14px;box-shadow:0 5px 18px #1c55300b}
+h2{font-size:1.15rem;margin:0 0 12px}.hint{font-size:.9rem;color:var(--muted);line-height:1.5;margin:7px 0}
+label{display:block;font-weight:650;font-size:.92rem;margin:12px 0 6px}
+input[type=url],input[type=text]{width:100%;border:1px solid #bdcec2;border-radius:11px;padding:12px;font-size:1rem;background:white;color:var(--ink)}
+button,.filebtn{border:0;border-radius:12px;padding:12px 15px;background:var(--green);color:white;font-size:1rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+button:disabled{opacity:.55;cursor:wait}.secondary{background:var(--green2);color:var(--green);border:1px solid #cde6d5}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}.upload{display:block;border:2px dashed #b8d3c1;border-radius:14px;padding:20px;text-align:center;background:#f9fdf9;cursor:pointer}
+.upload input{display:block;max-width:100%;margin:12px auto 0}
+.preview{width:100%;max-height:320px;object-fit:contain;border-radius:12px;background:#f1f5f2;margin-top:12px;display:none}
+.status{padding:11px 12px;border-radius:10px;background:#f1f6f2;color:#355744;font-size:.92rem;line-height:1.45;margin-top:12px}
+.result{display:none}.pill{display:inline-block;background:var(--green2);color:var(--green);border-radius:999px;padding:5px 10px;font-size:.82rem;font-weight:800}
+.resultname{font-size:1.6rem;font-weight:800;margin:10px 0 4px;overflow-wrap:anywhere}
+.barrow{margin:11px 0}.barlabel{display:flex;justify-content:space-between;gap:10px;font-size:.9rem;margin-bottom:5px}.track{height:9px;background:#edf2ee;border-radius:99px;overflow:hidden}.bar{height:100%;background:#2d915a;border-radius:99px;width:0}
+.warning{background:var(--amber);border:1px solid #f0dfa7;padding:13px;border-radius:12px;line-height:1.5;font-size:.9rem}
+footer{padding:4px 16px 28px;text-align:center;color:var(--muted);font-size:.82rem}
+small{color:var(--muted)}.steps{padding-left:20px;line-height:1.6}.steps li{margin:6px 0}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<div class="eyebrow">School science exhibition · Class 6</div>
+<h1>🌱 AI Plant Doctor</h1>
+<p class="subtitle">Take a leaf photo, run your trained image model, and see what category the AI predicts.</p>
+</div></header>
+<main>
+<section class="card">
+<h2>1. Connect your trained AI model</h2>
+<p class="hint">Train an image model at Teachable Machine first. In its export/share step, choose a shareable hosted model and paste the model URL here. It usually ends with a slash, for example <code>https://teachablemachine.withgoogle.com/models/your-model-id/</code>.</p>
+<label for="modelUrl">Teachable Machine model URL</label>
+<input id="modelUrl" type="url" placeholder="https://teachablemachine.withgoogle.com/models/..." autocomplete="url">
+<div class="actions"><button id="loadBtn">Load AI model</button><button id="clearModel" class="secondary" type="button">Clear</button></div>
+<div id="modelStatus" class="status" role="status">No model loaded yet. The app will not make predictions until you connect a trained model.</div>
+</section>
+<section class="card">
+<h2>2. Choose a leaf photo</h2>
+<label class="upload" for="photoInput">
+<strong>📷 Choose or take a photo</strong><br><span class="hint">Use a clear, well-lit photo with the leaf in focus.</span>
+<input id="photoInput" type="file" accept="image/*" capture="environment">
+</label>
+<img id="preview" class="preview" alt="Selected leaf preview">
+<div class="actions"><button id="predictBtn" disabled>Check leaf with AI</button><button id="resetBtn" class="secondary" type="button">Reset photo</button></div>
+<div id="photoStatus" class="status" role="status">Choose a photo to begin.</div>
+</section>
+<section class="card result" id="resultCard" aria-live="polite">
+<span class="pill">MODEL PREDICTION</span>
+<div class="resultname" id="topName">—</div>
+<div id="topConfidence" class="hint"></div>
+<h2 style="margin-top:18px">All class scores</h2>
+<div id="scores"></div>
+<div class="warning" style="margin-top:16px"><strong>Remember:</strong> This is a visual AI prediction, not a confirmed plant diagnosis. Spots or yellowing can have several causes. Ask a teacher, farmer or agricultural expert before treating a plant.</div>
+</section>
+<section class="card">
+<h2>How to prepare your model</h2>
+<ol class="steps">
+<li>Open <a href="https://teachablemachine.withgoogle.com/" target="_blank" rel="noopener">Teachable Machine</a> in your browser.</li>
+<li>Choose <strong>Get Started → Image Project → Standard Image Model</strong>, if shown.</li>
+<li>Create classes such as <strong>Healthy Leaf</strong>, <strong>Damaged Leaf</strong> and <strong>Not a Leaf</strong>.</li>
+<li>Add varied examples to each class and train the model. Use photos you have permission to use.</li>
+<li>Export/share the model to a hosted URL, then paste that URL into the box above.</li>
+<li>Test with new photos not used for training. If it gives poor predictions, add better examples and retrain.</li>
+</ol>
+<p class="hint">A classifier trained on “healthy” and “damaged” leaves learns those visual categories; it does not automatically know the exact disease or the right treatment.</p>
+</section>
+</main>
+<footer>AI Plant Doctor · A student learning project · No diagnosis or treatment advice</footer>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<script>
+const modelUrl = document.getElementById('modelUrl');
+const loadBtn = document.getElementById('loadBtn');
+const clearModel = document.getElementById('clearModel');
+const modelStatus = document.getElementById('modelStatus');
+const photoInput = document.getElementById('photoInput');
+const preview = document.getElementById('preview');
+const predictBtn = document.getElementById('predictBtn');
+const resetBtn = document.getElementById('resetBtn');
+const photoStatus = document.getElementById('photoStatus');
+const resultCard = document.getElementById('resultCard');
+const topName = document.getElementById('topName');
+const topConfidence = document.getElementById('topConfidence');
+const scores = document.getElementById('scores');
+let model = null;
+let imageReady = false;
+let busy = false;
+
+function setModelStatus(message){ modelStatus.textContent = message; }
+function validModelUrl(raw){
+  try {
+    const u = new URL(raw.trim());
+    return (u.protocol === 'https:' && u.hostname === 'teachablemachine.withgoogle.com' && u.pathname.includes('/models/'));
+  } catch(e){ return false; }
+}
+loadBtn.addEventListener('click', async () => {
+  const raw = modelUrl.value.trim();
+  if (!validModelUrl(raw)) {
+    setModelStatus('Please paste a valid hosted Teachable Machine model URL beginning with https://teachablemachine.withgoogle.com/models/.');
+    return;
+  }
+  if (busy) return;
+  busy = true; loadBtn.disabled = true; setModelStatus('Loading model… please wait.');
+  try {
+    if (!window.tmImage) throw new Error('AI library did not load. Check internet access and reload this page.');
+    const base = raw.endsWith('/') ? raw : raw + '/';
+    const loaded = await tmImage.load(base + 'model.json', base + 'metadata.json');
+    model = loaded;
+    setModelStatus('AI model loaded successfully. Choose a leaf photo and tap “Check leaf with AI”.');
+    predictBtn.disabled = !imageReady;
+  } catch (err) {
+    model = null;
+    setModelStatus('Could not load the model. Check the URL, make sure the model is hosted/shared, and confirm internet access. Details: ' + (err.message || 'unknown error'));
+    predictBtn.disabled = true;
+  } finally { busy = false; loadBtn.disabled = false; }
+});
+clearModel.addEventListener('click', () => {
+  model = null; modelUrl.value = ''; predictBtn.disabled = true;
+  setModelStatus('Model cleared. Paste a hosted model URL to reconnect.');
+  resultCard.style.display = 'none';
+});
+photoInput.addEventListener('change', () => {
+  const file = photoInput.files && photoInput.files[0];
+  resultCard.style.display = 'none';
+  if (!file) { imageReady = false; preview.style.display='none'; predictBtn.disabled=true; return; }
+  if (!file.type.startsWith('image/')) { photoStatus.textContent = 'Please choose an image file.'; return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    preview.onload = () => {
+      imageReady = true; preview.style.display = 'block';
+      photoStatus.textContent = 'Photo ready. Now run the AI model.';
+      predictBtn.disabled = !model;
+    };
+    preview.src = reader.result;
+  };
+  reader.onerror = () => { photoStatus.textContent = 'Could not read that photo. Try another image.'; };
+  reader.readAsDataURL(file);
+});
+predictBtn.addEventListener('click', async () => {
+  if (!model || !imageReady || busy) return;
+  busy = true; predictBtn.disabled = true; photoStatus.textContent = 'AI is analysing the image…';
+  try {
+    const predictions = await model.predict(preview, false);
+    predictions.sort((a,b) => b.probability - a.probability);
+    if (!predictions.length) throw new Error('The model returned no class predictions.');
+    const best = predictions[0];
+    topName.textContent = best.className;
+    topConfidence.textContent = 'Model score: ' + (best.probability * 100).toFixed(1) + '%. This score is not a guarantee of correctness.';
+    scores.innerHTML = '';
+    predictions.forEach(p => {
+      const row = document.createElement('div'); row.className='barrow';
+      const label = document.createElement('div'); label.className='barlabel';
+      const name = document.createElement('span'); name.textContent = p.className;
+      const pct = document.createElement('strong'); pct.textContent = (p.probability*100).toFixed(1)+'%';
+      label.append(name,pct);
+      const track = document.createElement('div'); track.className='track';
+      const bar = document.createElement('div'); bar.className='bar'; bar.style.width=(p.probability*100)+'%';
+      track.appendChild(bar); row.append(label,track); scores.appendChild(row);
+    });
+    resultCard.style.display = 'block';
+    photoStatus.textContent = 'Prediction complete. Try a different photo and compare the results.';
+    resultCard.scrollIntoView({behavior:'smooth',block:'start'});
+  } catch(err) {
+    photoStatus.textContent = 'Prediction failed. Try another image or reload the model. Details: ' + (err.message || 'unknown error');
+  } finally { busy = false; predictBtn.disabled = !(model && imageReady); }
+});
+resetBtn.addEventListener('click', () => {
+  photoInput.value = ''; preview.removeAttribute('src'); preview.style.display='none';
+  imageReady = false; predictBtn.disabled = true; resultCard.style.display='none';
+  photoStatus.textContent = 'Choose a photo to begin.';
+});
+</script>
+</body>
+</html>
